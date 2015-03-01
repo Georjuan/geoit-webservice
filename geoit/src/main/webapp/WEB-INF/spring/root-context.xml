@@ -1,8 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
 	
-	<!-- Root Context: defines shared resources visible to all other web components -->
+	<!-- Base package to load spring beans -->
+	<!-- Load controller beans -->
+	<context:component-scan base-package="br.com.geoit.app.controller"/>
+	<!-- Load service beans -->
+	<context:component-scan base-package="br.com.geoit.app.service"/>
+	<!-- Load persistence beans -->
+	<context:component-scan base-package="br.com.geoit.app.dao.impl"/>
+	
+	<!-- Enable controller response model -->
+	<mvc:annotation-driven />
+	
+	<!-- Configure JDBC parameters -->
+	<context:property-placeholder location="classpath:server.properties"/>
+
+	<!--Data source -->
+	<bean name="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+		<property name="dataSourceName" value="PostgreSQL"/>
+		<property name="driverClass" value="${jdbc.driverName}" />
+        <property name="jdbcUrl" value="${jdbc.url}" />
+        <property name="user" value="${jdbc.username}" />
+        <property name="password" value="${jdbc.password}" />
+        <!--
+		<property name="properties">
+			<props>
+				<prop key="loglevel">2</prop>
+				<prop key="user">${jdbc.username}</prop>
+				<prop key="password">${jdbc.password}</prop>
+			</props>
+		</property>
+		-->
+	</bean>
+	
+	<!-- Transaction manager -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+	
+	<!-- Enable transaction manager -->
+	<tx:annotation-driven transaction-manager="transactionManager" />
+	
+	<!-- The transactional advice -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<!-- the transactional semantics... -->
+		<tx:attributes>
+			<!-- all methods starting with 'get' and 'select' are read-only -->			
+			<tx:method name="get*" read-only="true" rollback-for="br.com.geoit.app.util.WebException,SQLException,DataAccessException,Exception"/>
+			<!-- other methods use the default transaction settings -->
+		  	<tx:method name="*" rollback-for="br.com.geoit.app.util.WebException,SQLException,DataAccessException,Exception"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- Enable transaction advice for all service classes -->
+	<aop:config>
+	  <aop:pointcut id="serviceMethods" expression="execution(* br.com.geoit.app.service.*.*(..))"/>
+	  <aop:advisor advice-ref="txAdvice" pointcut-ref="serviceMethods"/>
+	</aop:config>
 		
 </beans>
