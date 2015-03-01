@@ -46,7 +46,7 @@ public class AppController {
 		view.setViewName("home");
 		//View parameters
 		view.addObject("company", "Geo It");
-		view.addObject("message", "Hello World!");
+		view.addObject("message", "Welcome Geo It!");
 		return view;
 	}
 	
